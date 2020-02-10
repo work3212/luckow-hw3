@@ -1,21 +1,51 @@
 #!/usr/local/bin/php -q
 <?php
-include('config.php');
+require_once 'config.php';
 
-$socket = stream_socket_client($socketDomain, $errNo, $errStr, 30);
-if (!$socket) {
-    echo sprintf("%s (%d)<br />\n", $errStr, $errNo);
-} else {
+Class Client
+{
+    private $socket;
 
-    while (true) {
-        while (!feof($socket)) {
-            $message = fread($socket, 1024);
-            echo "Принято сообщение: " . $message . "\n";
+    public function __construct($socketDomain)
+    {
+        $this->socket = stream_socket_client($socketDomain, $errNo, $errStr, 30);
+        $this->checkSocket($this->socket);
+    }
 
-            $sendMessage = 'Получено: ' . $message;
-            fputs($socket, $sendMessage);
+    public function start()
+    {
+        while (true) {
+            while (!feof($this->socket)) {
+                $message = $this->read();
+                $this->send($message);
+            }
         }
     }
 
-    fclose($socket);
+    private function read()
+    {
+        $message = fread($this->socket, 1024);
+        echo "Принято сообщение: " . $message . "\n";
+        return $message;
+    }
+
+    private function send($message)
+    {
+        $sendMessage = 'Получено: ' . $message;
+        fputs($this->socket, $sendMessage);
+    }
+
+    public function checkSocket($socket)
+    {
+        if (!$socket) {
+            echo 'Ошибка создания сокета' . "\n";
+            die();
+        } else {
+            echo 'Ожидаем соединения' . "\n";
+        }
+
+    }
 }
+
+$client = new Client($socketDomain);
+$client->start();
